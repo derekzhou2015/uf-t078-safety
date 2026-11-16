@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from datetime import datetime
 import itertools
 import logging
@@ -288,10 +289,15 @@ class PythonFile(InspectableFile, Remediable):
             config (ConfigModel): The configuration model.
         """
         ignored_vulns_data = {}
+        policy_ignored_vulns = config.depedendency_vulnerability.ignore_vulnerabilities
+        # Each inspected manifest must keep its own exemption ledger. The
+        # policy-declared ignores are copied so that per-scan mutations
+        # (auto-ignores, expired-entry cleanup) never leak into another file
+        # or back into the policy configuration itself.
         ignore_vulns = (
             IgnoredItems({})
-            if not config.depedendency_vulnerability.ignore_vulnerabilities
-            else config.depedendency_vulnerability.ignore_vulnerabilities
+            if not policy_ignored_vulns
+            else IgnoredItems(copy.deepcopy(dict(policy_ignored_vulns)))
         )
 
         ignore_severity = config.depedendency_vulnerability.ignore_cvss_severity
